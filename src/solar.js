@@ -8,6 +8,7 @@ function Solar(){
     this._meshes = [];
     this._stars = {};
     this._sphereGeometry = new THREE.SphereGeometry(1,32,32);
+    this._textureLoader = new THREE.TextureLoader();
 }
 /**
  * @returns {Star[]}
@@ -32,18 +33,40 @@ Solar.prototype.initialize = function(){
 /**
  * @param {String} color 
  * @param {String} texture 
+ * @param {Boolean} fullLight
  * @returns {THREE.MeshBasicMaterial}
  */
-Solar.prototype.createMaterial = function( color = 'grey', texture = ''){
-    this._materials.push(new THREE.MeshBasicMaterial( {color : color } ));
+Solar.prototype.createMaterial = function( color = 'grey', texture = '', fullLight = false ){
+
+    const textureMap = this.loadTexture( texture );
+    //console.log(textureMap);
+    //const properties = {color: color };
+    const properties = textureMap ? {map:textureMap} : {color: color };
+
+    const material = fullLight ?
+        new THREE.MeshBasicMaterial(properties) :
+        new THREE.MeshStandardMaterial(properties);
+    //const material = new THREE.MeshBasicMaterial(properties);
+    //console.log(material,textureMap);
+    this._materials.push( material );
     return this._materials[this._materials.length- 1];
+};
+/**
+ * @param {String} texture 
+ * @returns {THREE.Texture}
+ */
+Solar.prototype.loadTexture = function( texture = '' ){
+    if( texture && texture.length ){
+        return this._textureLoader.load( `static/textures/${texture}` );
+    }
+    return null;
 };
 /**
  * @param {THREE.MeshBasicMaterial} material 
  * @returns {THREE.Mesh}
  */
 Solar.prototype.createMesh = function( material ){
-    if( material instanceof THREE.MeshBasicMaterial){
+    if( material instanceof THREE.Material ){
         this._meshes.push( new THREE.Mesh(this._sphereGeometry,material));
         return this._meshes[this._meshes.length-1];
     }
@@ -62,11 +85,21 @@ Solar.prototype.has = function( name = '' ){
  * @param {Number} radius 
  * @param {Number} distance 
  * @param {Number} speed 
+ * @param {Solar} parent
+ * @param {String} texture 
+ * @param {Boolean} fullLight
  * @returns {Star}
  */
-Solar.prototype.createStar = function( name = '', color = 'grey', radius=  1 , distance = 0 , speed = 0.01 , parent = null){
+Solar.prototype.createStar = function( name = '', color = 'grey', radius=  1 , distance = 0 , speed = 0.01 , parent = null,texture = '',fullLight = false){
     if( !this.has(name)){
-        const mesh = this.createMesh(this.createMaterial(color));
+        const mesh = this.createMesh(this.createMaterial(color,texture,fullLight));
+        if(fullLight){
+            const light = new THREE.PointLight( color, radius * 50, 0 , 1.5);
+            //console.log(light);
+            //light.position.set( 0 , 0 , 0 );
+            mesh.add( light );
+        }
+        //console.log(mesh);
         const star = new Star(mesh,name,radius,distance,speed);
         this._stars[star.name()] = star.setParent(parent);
         
@@ -102,6 +135,8 @@ Solar.CreateSystem = function( scene = null ){
             tpl.distance,
             tpl.speed,
             solar.star(tpl.parent || ''),
+            tpl.texture || '',
+            tpl.lightEmitter || solar.stars().length === 0,
         );
     });
 
@@ -254,17 +289,17 @@ Loader.templates = function(){
  */
 Loader.template2 =function(){
     return [
-        {'name':'Sun','color':'#FFD700','radius':10,'speed':0.07},
-        {'name':'Mercury','color':'#B1B1B1','radius':0.38,'distance':40,'speed':0.48,'parent':'Sun'},
-        {'name':'Venus','color':'#D4AF37','radius':0.95,'distance':100,'speed':0.54,'parent':'Sun'},
-        {'name':'Earth','color':'#2E8B57','radius':1,'distance':150,'speed':0.3,'parent':'Sun'},
-        {'name':'Moon','color':'#C0C0C0','radius':0.27,'distance':6,'speed':0.01,'parent':'Earth'},
-        {'name':'Mars','color':'#FF4500','radius':0.53,'distance':200,'speed':0.24,'parent':'Sun'},
-        {'name':'Jupiter','color':'#D2691E','radius':5,'distance':300,'speed':0.13,'parent':'Sun'},
-        {'name':'Saturn','color':'#F4A460','radius':3,'distance':350,'speed':0.1,'parent':'Sun'},
-        {'name':'Uranus','color':'#00CED1','radius':2,'distance':450,'speed':0.07,'parent':'Sun'},
-        {'name':'Neptune','color':'#1E90FF','radius':2,'distance':500,'speed':0.06,'parent':'Sun'},
-        {'name':'Pluto','color':'#DEB887','radius':0.1,'distance':600,'speed':0.05,'parent':'Sun'},
+        {'name':'Sun','color':'#FFD700','radius':10,'speed':0.07,'texture':'2k_sun.jpg'},
+        {'name':'Mercury','color':'#B1B1B1','radius':0.38,'distance':40,'speed':0.48,'parent':'Sun','texture':'2k_mercury.jpg'},
+        {'name':'Venus','color':'#D4AF37','radius':0.95,'distance':100,'speed':0.54,'parent':'Sun','texture':'2k_venus_surface.jpg'},
+        {'name':'Earth','color':'#3F51B5','radius':1,'distance':150,'speed':0.3,'parent':'Sun','texture':'2k_earth_daymap.jpg'},
+        {'name':'Moon','color':'#C0C0C0','radius':0.27,'distance':6,'speed':0.01,'parent':'Earth','texture':'2k_moon.jpg'},
+        {'name':'Mars','color':'#FF4500','radius':0.53,'distance':200,'speed':0.24,'parent':'Sun','texture':'2k_mars.jpg'},
+        {'name':'Jupiter','color':'#D2691E','radius':5,'distance':300,'speed':0.13,'parent':'Sun','texture':'jupiter.jpg'},
+        {'name':'Saturn','color':'#F4A460','radius':3,'distance':350,'speed':0.1,'parent':'Sun','texture':'saturn_2k.jpg'},
+        {'name':'Uranus','color':'#00CED1','radius':2,'distance':450,'speed':0.07,'parent':'Sun','texture':'uranus_2k.jpg'},
+        {'name':'Neptune','color':'#1E90FF','radius':2,'distance':500,'speed':0.06,'parent':'Sun','texture':'neptune_2k.jpg'},
+        {'name':'Pluto','color':'#DEB887','radius':0.1,'distance':600,'speed':0.05,'parent':'Sun','texture':'plutomap1k.jpg'},
     ];
 };
 /**
@@ -272,17 +307,19 @@ Loader.template2 =function(){
  */
 Loader.template1 = function(){
     return [
-        {'name':'Sun','color':'#FFD700','radius':6},
-        {'name':'Mercury','color':'#B1B1B1','radius':0.3,'distance':9,'speed':0.76,'parent':'Sun'},
-        {'name':'Venus','color':'#D4AF37','radius':0.95,'distance':16,'speed':0.54,'parent':'Sun'},
-        {'name':'Earth','color':'#2E8B57','radius':1,'distance':24,'speed':0.23,'parent':'Sun'},
-        {'name':'Moon','color':'#C0C0C0','radius':0.3,'distance':2,'speed':0.6,'parent':'Earth'},
-        {'name':'Mars','color':'#FF4500','radius':0.8,'distance':32,'speed':0.16,'parent':'Sun'},
-        {'name':'Jupiter','color':'#D2691E','radius':2.4,'distance':39,'speed':0.1,'parent':'Sun'},
-        {'name':'Saturn','color':'#F4A460','radius':1.8,'distance':45,'speed':0.08,'parent':'Sun'},
-        {'name':'Uranus','color':'#00CED1','radius':2.1,'distance':52,'speed':0.05,'parent':'Sun'},
-        {'name':'Neptune','color':'#1E90FF','radius':2.2,'distance':58,'speed':0.04,'parent':'Sun'},
-        {'name':'Pluto','color':'#DEB887','radius':0.5,'distance':70,'speed':0.024,'parent':'Sun'},
+        {'name':'Sun','color':'#FFD7D7','radius':6,'speed':0.1,'texture':'2k_sun.jpg'},
+        {'name':'Mercury','color':'#B1B1B1','radius':0.3,'distance':9,'speed':0.76,'parent':'Sun','texture':'2k_mercury.jpg'},
+        {'name':'Venus','color':'#D4AF37','radius':0.95,'distance':16,'speed':0.54,'parent':'Sun','texture':'2k_venus_surface.jpg'},
+        {'name':'Earth','color':'#3F51B5','radius':1,'distance':24,'speed':0.23,'parent':'Sun','texture':'2k_earth_daymap.jpg'},
+        {'name':'Moon','color':'#C0C0C0','radius':0.3,'distance':2,'speed':0.6,'parent':'Earth','texture':'2k_moon.jpg'},
+        {'name':'Mars','color':'#FF4500','radius':0.8,'distance':32,'speed':0.16,'parent':'Sun','texture':'2k_mars.jpg'},
+        {'name':'Phobos','color':'#9A9ACA','radius':0.1,'distance':2,'speed':0.1,'parent':'Mars'},
+        {'name':'Deimos','color':'#DACACA','radius':0.2,'distance':3,'speed':0.08,'parent':'Mars'},
+        {'name':'Jupiter','color':'#D2691E','radius':2.4,'distance':39,'speed':0.1,'parent':'Sun','texture':'jupiter.jpg'},
+        {'name':'Saturn','color':'#F4A460','radius':1.8,'distance':45,'speed':0.08,'parent':'Sun','texture':'saturn_2k.jpg'},
+        {'name':'Uranus','color':'#00CED1','radius':2.1,'distance':52,'speed':0.05,'parent':'Sun','texture':'uranus_2k.jpg'},
+        {'name':'Neptune','color':'#1E90FF','radius':2.2,'distance':58,'speed':0.04,'parent':'Sun','texture':'neptune_2k.jpg'},
+        {'name':'Pluto','color':'#DEB887','radius':0.5,'distance':70,'speed':0.024,'parent':'Sun','texture':'plutomap1k.jpg'},
     ];
 };
 
