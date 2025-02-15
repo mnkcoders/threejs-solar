@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 /**
- * 
+ * @type {Solar}
  */
 function Solar(){
     this._materials = [];
@@ -19,7 +19,7 @@ Solar.prototype.stars = function(){
  * @param {String} name 
  * @returns {Star}
  */
-Solar.prototype.star = function( name ){
+Solar.prototype.star = function( name = '' ){
     return this.has(name) ? this._stars[name] : null;
 };
 /**
@@ -67,7 +67,6 @@ Solar.prototype.has = function( name = '' ){
 Solar.prototype.createStar = function( name = '', color = 'grey', radius=  1 , distance = 0 , speed = 0.01 , parent = null){
     if( !this.has(name)){
         const mesh = this.createMesh(this.createMaterial(color));
-        mesh.scale.setScalar(radius);
         const star = new Star(mesh,name,radius,distance,speed);
         this._stars[star.name()] = star.setParent(parent);
         
@@ -87,9 +86,36 @@ Solar.prototype.sun = function(){
 Solar.prototype.empty = function(){
     return this.sun() !== null;
 };
+/**
+ * @param {THREE.Scene} scene 
+ * @returns {Solar}
+ */
+Solar.CreateSystem = function( scene = null ){
+    
+    const solar = new Solar();
+    //preload using loader
+    Loader.templates().forEach( tpl => {
+        solar.createStar(
+            tpl.name,
+            tpl.color,
+            tpl.radius,
+            tpl.distance,
+            tpl.speed,
+            solar.star(tpl.parent || ''),
+        );
+    });
+
+
+    if( scene !== null && scene instanceof THREE.Scene){
+        solar.stars().map( star => star.mesh()).forEach( mesh => scene.add(mesh));
+    }
+
+    return solar.initialize();
+};
+
 
 /**
- * 
+ * @type {Star}
  * @param {THREE.Mesh} mesh 
  * @param {String} name 
  * @param {Number} radius 
@@ -97,14 +123,26 @@ Solar.prototype.empty = function(){
  * @param {Number} speed 
  */
 function Star( mesh , name  = 'planet', radius = 1, distance = 0 , speed = 0.01){
-    this._mesh = mesh || null;
-    this._radius = radius;
-    this._distance = distance;
-    this._speed = speed;
-
     this._name = name;
+    this._radius = radius || 1;
+    this._distance = distance || 0;
+    this._speed = speed || 0.01;
+
+    this._mesh = mesh || null;
     this._parent = null;
-    //this._children = [];
+
+    this._offset = Math.floor(Math.random() * 360);
+
+    return this.initialize();
+};
+/**
+ * @returns {Star}
+ */
+Star.prototype.initialize = function(){
+    if( this._mesh ){
+        this._mesh.scale.setScalar( this._radius );
+    }
+    return this;
 };
 /**
  * @returns {THREE.Mesh};
@@ -157,8 +195,9 @@ Star.prototype.name = function(){
  */
 Star.prototype.update = function(delta = 0,elapsed = 0){
     if( this.distance()){
-        this._mesh.position.x = this.x() + Math.sin( elapsed * this.speed()) * this.distance();
-        this._mesh.position.z = this.z() + Math.cos( elapsed * this.speed()) * this.distance();
+        const translation = this._offset + elapsed * this.speed();
+        this._mesh.position.x = this.x() + Math.sin( translation) * this.distance();
+        this._mesh.position.z = this.z() + Math.cos( translation) * this.distance();
         this._mesh.position.y = Math.cos( elapsed ) * this.speed() ;    
     }
     this._mesh.rotation.y += this.speed(delta);
@@ -197,8 +236,55 @@ Star.prototype.radius = function(){
 };
 
 
-
-
+/**
+ * Solar System template loader
+ */
+function Loader(){
+    throw `${this.constructor} is a static class`;
+};
+/**
+ * @returns {Object[]}
+ */
+Loader.templates = function(){
+    return this.template1();
+};
+/**
+ * Real proportional scale to earth's 1 radius and 0.3 speed
+ * @returns {Object[]}
+ */
+Loader.template2 =function(){
+    return [
+        {'name':'Sun','color':'#FFD700','radius':10,'speed':0.07},
+        {'name':'Mercury','color':'#B1B1B1','radius':0.38,'distance':40,'speed':0.48,'parent':'Sun'},
+        {'name':'Venus','color':'#D4AF37','radius':0.95,'distance':100,'speed':0.54,'parent':'Sun'},
+        {'name':'Earth','color':'#2E8B57','radius':1,'distance':150,'speed':0.3,'parent':'Sun'},
+        {'name':'Moon','color':'#C0C0C0','radius':0.27,'distance':6,'speed':0.01,'parent':'Earth'},
+        {'name':'Mars','color':'#FF4500','radius':0.53,'distance':200,'speed':0.24,'parent':'Sun'},
+        {'name':'Jupiter','color':'#D2691E','radius':5,'distance':300,'speed':0.13,'parent':'Sun'},
+        {'name':'Saturn','color':'#F4A460','radius':3,'distance':350,'speed':0.1,'parent':'Sun'},
+        {'name':'Uranus','color':'#00CED1','radius':2,'distance':450,'speed':0.07,'parent':'Sun'},
+        {'name':'Neptune','color':'#1E90FF','radius':2,'distance':500,'speed':0.06,'parent':'Sun'},
+        {'name':'Pluto','color':'#DEB887','radius':0.1,'distance':600,'speed':0.05,'parent':'Sun'},
+    ];
+};
+/**
+ * @returns {Object[]}
+ */
+Loader.template1 = function(){
+    return [
+        {'name':'Sun','color':'#FFD700','radius':6},
+        {'name':'Mercury','color':'#B1B1B1','radius':0.3,'distance':9,'speed':0.76,'parent':'Sun'},
+        {'name':'Venus','color':'#D4AF37','radius':0.95,'distance':16,'speed':0.54,'parent':'Sun'},
+        {'name':'Earth','color':'#2E8B57','radius':1,'distance':24,'speed':0.23,'parent':'Sun'},
+        {'name':'Moon','color':'#C0C0C0','radius':0.3,'distance':2,'speed':0.6,'parent':'Earth'},
+        {'name':'Mars','color':'#FF4500','radius':0.8,'distance':32,'speed':0.16,'parent':'Sun'},
+        {'name':'Jupiter','color':'#D2691E','radius':2.4,'distance':39,'speed':0.1,'parent':'Sun'},
+        {'name':'Saturn','color':'#F4A460','radius':1.8,'distance':45,'speed':0.08,'parent':'Sun'},
+        {'name':'Uranus','color':'#00CED1','radius':2.1,'distance':52,'speed':0.05,'parent':'Sun'},
+        {'name':'Neptune','color':'#1E90FF','radius':2.2,'distance':58,'speed':0.04,'parent':'Sun'},
+        {'name':'Pluto','color':'#DEB887','radius':0.5,'distance':70,'speed':0.024,'parent':'Sun'},
+    ];
+};
 
 export {Solar,Star};
 

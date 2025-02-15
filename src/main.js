@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import {Solar,Star} from './solar.js';
+import {Solar} from './solar.js';
 import { OrbitControls } from 'three/examples/jsm/Addons.js';
 //scene and camera
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(30,window.innerWidth/window.innerHeight,0.01,1000);
+const camera = new THREE.PerspectiveCamera(30,window.innerWidth/window.innerHeight,0.01,100000);
 //renderer
 const canvas = document.querySelector('canvas.threejs');
 const renderer = new THREE.WebGLRenderer({canvas:canvas});
@@ -14,10 +14,12 @@ scene.add(camera);
 //controls
 const controls = new OrbitControls(camera,canvas);
 controls.enableDamping = true;
-controls.maxDistance = 2000;
-controls.minDistance = 10;
+controls.maxDistance = 100000;
+controls.minDistance = 30;
+
 //setup solar system
-const solarSystem = new Solar();
+const solarSystem = Solar.CreateSystem(scene);
+/*const solarSystem = new Solar();
 scene.add(solarSystem.createStar('Sun','yellow',6).mesh());
 scene.add(solarSystem.createStar('Mercury','orange',0.4,9,0.76,solarSystem.star('Sun')).mesh());
 scene.add(solarSystem.createStar('Venus','#ddaa55',0.95,16,0.54,solarSystem.star('Sun')).mesh());
@@ -29,6 +31,7 @@ scene.add(solarSystem.createStar('Saturn','#5588cc',1.8,45,0.08,solarSystem.star
 scene.add(solarSystem.createStar('Uranus','#ddeeff',2.1,52,0.05,solarSystem.star('Sun')).mesh());
 scene.add(solarSystem.createStar('Neptune','#aabbff',2,58,0.04,solarSystem.star('Sun')).mesh());
 scene.add(solarSystem.createStar('Pluto','#0055dd',0.5,69,0.024,solarSystem.star('Sun')).mesh());
+*/
 
 //resize
 window.addEventListener('resize',() => {
@@ -38,7 +41,7 @@ window.addEventListener('resize',() => {
 });
 
 //initialize randomly the planets
-solarSystem.initialize();
+//solarSystem.initialize();
 
 const clock = new THREE.Clock(false);
 console.log(solarSystem);
