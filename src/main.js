@@ -20,7 +20,7 @@ controls.maxDistance = 100000;
 controls.minDistance = 30;
 
 //setup solar system
-const solarSystem = Solar.CreateSystem(scene);
+const solarSystem = Solar.CreateSystem(scene,'#0000ff',0.1);
 
 //resize
 window.addEventListener('resize',() => {
@@ -34,7 +34,7 @@ const clock = new THREE.Clock();
 //update and drwa
 const draw = () =>{
 
-  solarSystem.stars().forEach( star => star.update(clock.getDelta(),clock.getElapsedTime()));
+  solarSystem.update( clock.getDelta(),clock.getElapsedTime());
   //console.log(solarSystem.star('Earth').mesh().position);
 
   controls.update();

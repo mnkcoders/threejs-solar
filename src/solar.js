@@ -2,14 +2,73 @@ import * as THREE from 'three';
 
 /**
  * @type {Solar}
+ * @param {String} light
+ * @param {Number} intensity
+ * @param {Number} scale
+ * @param {Number} speed
  */
-function Solar(){
+function Solar( light = '#ffffff', intensity = 0.5,scale = 1,speed = 1){
     this._materials = [];
     this._meshes = [];
     this._stars = {};
     this._sphereGeometry = new THREE.SphereGeometry(1,32,32);
     this._textureLoader = new THREE.TextureLoader();
+
+    this._lightColor = light;
+    this._lightRange = intensity;
+
+    this._scale = scale;
+    this._speed = speed;
 }
+/**
+ * @returns {String}
+ */
+Solar.prototype.lightColor = function(){
+    return this._light;
+};
+/**
+ * @returns {Number}
+ */
+Solar.prototype.lightIntensity = function(){
+    return this._lightRange;
+};
+/**
+ * @param {Number} scale 
+ * @returns {Solar} 
+ */
+Solar.prototype.setScale = function( scale = 1 ){
+    this._scale = scale;
+    return this;
+};
+/**
+ * @param {Number} speed 
+ * @returns {Solar} 
+ */
+Solar.prototype.setSpeed = function( speed = 1 ){
+    this._speed = speed;
+    return this;
+};
+/**
+ * @returns {Number}
+ */
+Solar.prototype.scale = function(){
+    return this._scale;
+};
+/**
+ * @returns {Number}
+ */
+Solar.prototype.speed = function(){
+    return this._speed;
+};
+/**
+ * @param {Number} delta 
+ * @param {Number} elapsed 
+ * @returns {Solar}
+ */
+Solar.prototype.update = function( delta = 0, elapsed = 0){
+    this.stars().forEach( star => star.update(delta,elapsed,this.scale(),this.speed()));
+    return this;
+};
 /**
  * @returns {Star[]}
  */
@@ -121,11 +180,15 @@ Solar.prototype.empty = function(){
 };
 /**
  * @param {THREE.Scene} scene 
+ * @param {String} lightColor
+ * @param {Number} lightRange
+ * @param {Number} scale
+ * @param {Number} speed
  * @returns {Solar}
  */
-Solar.CreateSystem = function( scene = null ){
+Solar.CreateSystem = function( scene = null , lightColor = 'black', lightRange = 0, scale = 1 , speed = 1){
     
-    const solar = new Solar();
+    const solar = new Solar(lightColor,lightRange,scale,speed);
     //preload using loader
     Loader.templates().forEach( tpl => {
         solar.createStar(
@@ -143,6 +206,10 @@ Solar.CreateSystem = function( scene = null ){
 
     if( scene !== null && scene instanceof THREE.Scene){
         solar.stars().map( star => star.mesh()).forEach( mesh => scene.add(mesh));
+        if( lightRange ){
+            const ambientLight = new THREE.AmbientLight(solar.lightColor(),solar.lightIntensity());
+            scene.add(ambientLight);    
+        }
     }
 
     return solar.initialize();
@@ -226,14 +293,16 @@ Star.prototype.name = function(){
 /**
  * @param {Number} delta 
  * @param {Number} elapsed
+ * @param {Number} scale
+ * @param {Number} speed
  * @returns {Star}
  */
-Star.prototype.update = function(delta = 0,elapsed = 0){
+Star.prototype.update = function(delta = 0, elapsed = 0,scale = 1 , speed = 1){
     if( this.distance()){
-        const translation = this._offset + elapsed * this.speed();
-        this._mesh.position.x = this.x() + Math.sin( translation) * this.distance();
-        this._mesh.position.z = this.z() + Math.cos( translation) * this.distance();
-        this._mesh.position.y = Math.cos( elapsed ) * this.speed() ;    
+        const translation = this._offset + elapsed * this.speed() * speed;
+        this._mesh.position.x = this.x() + Math.sin( translation) * this.distance() * scale;
+        this._mesh.position.z = this.z() + Math.cos( translation) * this.distance() * scale;
+        this._mesh.position.y = Math.cos( elapsed ) * this.speed(delta) * scale;
     }
     this._mesh.rotation.y += this.speed(delta);
     return this;
