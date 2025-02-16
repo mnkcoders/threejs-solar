@@ -10,8 +10,8 @@ function Solar(scale = 1, speed = 1) {
     this._materials = [];
     this._meshes = [];
     this._stars = {};
-    this._sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
-    this._textureLoader = new THREE.TextureLoader();
+    //this._sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
+    //this._textureLoader = new THREE.TextureLoader();
 
     this._lightColor = '#000000';
     this._lightRange = 0;
@@ -105,33 +105,18 @@ Solar.prototype.initialize = function () {
  * @returns {THREE.MeshBasicMaterial}
  */
 Solar.prototype.createMaterial = function (color = 'grey', texture = '', fullLight = false) {
-
-    const textureMap = this.loadTexture(texture);
-    const properties = textureMap ? { map: textureMap } : { color: color };
-
-    const material = fullLight ?
-        new THREE.MeshBasicMaterial(properties) :
-        new THREE.MeshStandardMaterial(properties);
+    const material = Loader.createMaterial(color,texture,fullLight);
     this._materials.push(material);
     return this._materials[this._materials.length - 1];
-};
-/**
- * @param {String} texture 
- * @returns {THREE.Texture}
- */
-Solar.prototype.loadTexture = function (texture = '') {
-    if (texture && texture.length) {
-        return this._textureLoader.load(`static/textures/${texture}`);
-    }
-    return null;
 };
 /**
  * @param {THREE.MeshBasicMaterial} material 
  * @returns {THREE.Mesh}
  */
 Solar.prototype.createMesh = function (material) {
-    if (material instanceof THREE.Material) {
-        this._meshes.push(new THREE.Mesh(this._sphereGeometry, material));
+    const mesh = Loader.createMesh(material);
+    if( mesh ){
+        this._meshes.push(mesh);
         return this._meshes[this._meshes.length - 1];
     }
     return null;
@@ -220,7 +205,7 @@ Solar.CreateSystem = function (scene = null) {
         }
         //use cubemap when scaled and look cool
         //scene.background = Loader.createCubeMap();
-        scene.background = Loader.createTexture(Loader.background());
+        scene.background = Loader.loadTexture(Loader.background());
         console.log(scene.background);
     }
 
@@ -359,6 +344,25 @@ function Loader() {
     throw `${this.constructor} is a static class`;
 };
 /**
+ * @returns {THREE.SphereGeometry}
+ */
+Loader.sphereGeometry = function(){
+    if( typeof this._sphereGeometry === 'undefined'){
+        this._sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
+    }
+    return this._sphereGeometry;
+};
+/**
+ * @param {THREE.MeshBasicMaterial} material 
+ * @returns {THREE.Mesh}
+ */
+Loader.createMesh = function (material) {
+    if (material instanceof THREE.Material) {
+        return new THREE.Mesh(this.sphereGeometry(), material);
+    }
+    return null;
+};
+/**
  * @returns {Object[]}
  */
 Loader.templates = function () {
@@ -401,11 +405,27 @@ Loader.cubeMapLoader = function(){
  * @param {String} texture 
  * @returns {THREE.Texture}
  */
-Loader.createTexture = function( texture = '' ){
+Loader.loadTexture = function( texture = '' ){
     if (texture && texture.length) {
         return this.textureLoader().load(`static/textures/${texture}`);
     }
     return null;
+};
+/**
+ * @param {String} color 
+ * @param {String} texture 
+ * @param {Boolean} basicMaterial
+ * @returns {THREE.MeshBasicMaterial}
+ */
+Loader.createMaterial = function(color = 'grey', texture = '', basicMaterial = false) {
+
+    const textureMap = this.loadTexture(texture);
+    const properties = textureMap ? { map: textureMap } : { color: color };
+    const material = basicMaterial ?
+        new THREE.MeshBasicMaterial(properties) :
+        new THREE.MeshStandardMaterial(properties);
+
+    return material;
 };
 
 /**
